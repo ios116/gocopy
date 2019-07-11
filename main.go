@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/ios116/gocopy"
+	"github.com/ios116/gocopy/copier"
 	"log"
 	"os"
 )
@@ -35,7 +35,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	gocopy := &gocopy.GoCopy{
+	gocopy := &copier.GoCopy{
 		R:      sours,
 		W:      out,
 		Limit:  limit,

@@ -1,4 +1,4 @@
-package gocopy
+package copier
 
 import (
 	"io/ioutil"
