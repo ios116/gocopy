@@ -1,28 +1,11 @@
 package copier
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"strings"
 )
-
-// ProgressCounter is struct for progress
-type ProgressCounter struct {
-	count uint64
-}
-
-// Write is implementation Writer interface for Progress
-func (pc *ProgressCounter) Write(p []byte) (int, error) {
-	n := len(p)
-	pc.count += uint64(n)
-	pc.PrintProgress()
-	return n, nil
-}
-
-// PrintProgress is printing copy files
-func (pc *ProgressCounter) PrintProgress() {
-	fmt.Printf("\n complete... %d bytes", pc.count)
-}
 
 // ReadCloseSeeker is interface ReadCloser, Seeker
 type ReadCloseSeeker interface {
@@ -37,20 +20,47 @@ type GoCopy struct {
 	Bs, Limit, Offset int64
 }
 
+// PrintProgress is printing copy files
+func (gc *GoCopy) PrintProgress(written int64) {
+	fmt.Printf("\n complete... %d bytes", written)
+}
+
 // Copier copies from rider to writer, returning the number of copied bytes and an error
-func (gc *GoCopy) Copier() (int64, error) {
+func (gc *GoCopy) Copier() (written int64, err error) {
 
 	if _, err := gc.R.Seek(gc.Offset, 0); err != nil {
 		return 0, err
 	}
 	limitReader := io.LimitReader(gc.R, gc.Limit)
-	counter := &ProgressCounter{}
+
 	b := make([]byte, gc.Bs)
-	written, err := io.CopyBuffer(gc.W, io.TeeReader(limitReader, counter), b)
-	if err != nil {
-		return 0, err
+	for {
+		nr, er := limitReader.Read(b)
+
+		if nr > 0 {
+			nw, ew := gc.W.Write(b[0:nr])
+			if nw > 0 {
+				written += int64(nw)
+				gc.PrintProgress(written)
+			}
+			if ew != nil {
+				err = ew
+				break
+			}
+
+			if nr != nw {
+				err = errors.New("short write")
+				break
+			}
+		}
+		if er != nil {
+			if er != io.EOF {
+				err = er
+			}
+			break
+		}
 	}
-	fmt.Printf("\n%s \n", strings.Repeat("-", 40))
+	fmt.Printf("\n%s\n", strings.Repeat("-", 40))
 	gc.W.Close()
 	gc.R.Close()
 	return written, nil
