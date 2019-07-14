@@ -63,6 +63,6 @@ func (gc *GoCopy) Copier() (written int64, err error) {
 	fmt.Printf("\n%s\n", strings.Repeat("-", 40))
 	gc.W.Close()
 	gc.R.Close()
-	return written, nil
+	return written, err
 
 }
